@@ -9,6 +9,21 @@ use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
+
+
+    public function recruteurAcceuil()
+    {
+        $recruteurs = User::where('role', 'recruteur')
+                          ->where('archived', 0)
+                          ->select('nom', 'prenom', 'email', 'poste', 'nom_societe', 'image') // Sélectionner uniquement les champs nécessaires
+                          ->get();
+    
+        foreach ($recruteurs as $recruteur) {
+            $recruteur->image = $recruteur->image ? asset('storage/' . $recruteur->image) : null;
+        }
+    
+        return response()->json($recruteurs);
+    }
     /**
  * @OA\Get(
  *     path="/api/users",

@@ -1,6 +1,7 @@
 <?php
 
 namespace App\Http\Controllers;
+use Carbon\Carbon;
 
 use Illuminate\Http\Request;
 use App\Models\Offre;
@@ -28,28 +29,52 @@ class OffreController extends Controller
  *     @OA\Response(response=422, description="Erreur de validation"),
  * )
  */  
-    public function ajoutOffre(Request $request)
-    {
-        $request->validate([
-            'departement' => 'required|string|max:255',
-            'poste' => 'required|string|max:255',
-            'description' => 'required|string',
-            'dateExpiration' => 'required|date|after:today',
-        ]);
+public function ajoutOffre(Request $request)
+{
+    $request->validate([
+        'departement' => 'required|string|max:255',
+        'poste' => 'required|string|max:255',
+        'description' => 'required|string',
+        'dateExpiration' => 'required|date|after:today',
+        'typePoste' => 'required|string|max:255',
+        'typeTravail' => 'required|string|max:255',
+        'heureTravail' => 'required|string|max:255',
+        'niveauExperience' => 'required|string|max:255',
+        'niveauEtude' => 'required|string|max:255',
+        'pays' => 'required|string|max:255',
+        'ville' => 'required|string|max:255',
+        'societe' => 'required|string|max:255',
+        'domaine' => 'required|string|max:255',
+        'responsabilite' => 'required|string',
+        'experience' => 'required|string',
+    ]);
 
-        $offre = Offre::create([
-            'departement' => $request->departement,
-            'poste' => $request->poste,
-            'description' => $request->description,
-            'datePublication' => now(), // Date du jour
-            'dateExpiration' => $request->dateExpiration,
-        ]);
+    $offre = Offre::create([
+        'departement' => $request->departement,
+        'poste' => $request->poste,
+        'description' => $request->description,
+        'datePublication' => now(), // Date du jour
+        'dateExpiration' => $request->dateExpiration,
+        'valider' => false, // Par défaut, l'offre n'est pas validée
+        'typePoste' => $request->typePoste,
+        'typeTravail' => $request->typeTravail,
+        'heureTravail' => $request->heureTravail,
+        'niveauExperience' => $request->niveauExperience,
+        'niveauEtude' => $request->niveauEtude,
+        'pays' => $request->pays,
+        'ville' => $request->ville,
+        'societe' => $request->societe,
+        'domaine' => $request->domaine,
+        'responsabilite' => $request->responsabilite,
+        'experience' => $request->experience,
+    ]);
 
-        return response()->json([
-            'message' => 'Offre ajoutée avec succès',
-            'offre' => $offre
-        ], 201);
-    }
+    return response()->json([
+        'message' => 'Offre ajoutée avec succès',
+        'offre' => $offre
+    ], 201);
+}
+
 
 /**
  * @OA\Get(
@@ -225,54 +250,52 @@ class OffreController extends Controller
  * )
  */
 
-    public function modifierOffre(Request $request, $id)
-    {
-        // Trouver l'offre par son ID
-        $offre = Offre::find($id);
-    
-        if (!$offre) {
-            return response()->json(['error' => 'Offre non trouvée'], 404);
-        }
-    
-        // Vérifier si l'offre est déjà validée
-        if ($offre->valider) {
-            return response()->json(['error' => 'Cette offre ne peut pas être modifiée car elle est déjà validée.'], 400);
-        }
-    
-        // Validation des données envoyées par la requête
-        $validatedData = $request->validate([
-            'departement' => 'nullable|string|max:255',
-            'poste' => 'nullable|string|max:255',
-            'description' => 'nullable|string',
-            'dateExpiration' => 'nullable|date|after:today',
-        ]);
-    
-        // Mise à jour des champs envoyés par le client (si ils sont fournis)
-        if ($request->has('departement')) {
-            $offre->departement = $validatedData['departement'];
-        }
-    
-        if ($request->has('poste')) {
-            $offre->poste = $validatedData['poste'];
-        }
-    
-        if ($request->has('description')) {
-            $offre->description = $validatedData['description'];
-        }
-    
-        if ($request->has('dateExpiration')) {
-            $offre->dateExpiration = $validatedData['dateExpiration'];
-        }
-    
-        // Sauvegarde des modifications
-        $offre->save();
-    
-        return response()->json([
-            'message' => 'Offre modifiée avec succès.',
-            'offre' => $offre
-        ], 200);
-    }
-   
+ public function modifierOffre(Request $request, $id)
+ {
+     try {
+         // Trouver l'offre par son ID ou renvoyer une erreur 404 si elle n'existe pas
+         $offre = Offre::findOrFail($id);
+ 
+         // Vérifier si l'offre est déjà validée
+         if ($offre->valider) {
+             return response()->json(['error' => 'Cette offre ne peut pas être modifiée car elle est déjà validée.'], 400);
+         }
+ 
+         // Validation des données envoyées par la requête
+         $validatedData = $request->validate([
+             'departement' => 'nullable|string|max:255',
+             'poste' => 'nullable|string|max:255',
+             'description' => 'nullable|string',
+             'dateExpiration' => 'nullable|date|after:today',
+             'typePoste' => 'nullable|string|max:255',
+             'typeTravail' => 'nullable|string|max:255',
+             'heureTravail' => 'nullable|string|max:255',
+             'niveauExperience' => 'nullable|string|max:255',
+             'niveauEtude' => 'nullable|string|max:255',
+             'pays' => 'nullable|string|max:255',
+             'ville' => 'nullable|string|max:255',
+             'societe' => 'nullable|string|max:255',
+             'domaine' => 'nullable|string|max:255',
+             'responsabilite' => 'nullable|string',
+             'experience' => 'nullable|string',
+         ]);
+ 
+         // Mise à jour des champs fournis par la requête
+         $offre->update($validatedData);
+ 
+         return response()->json([
+             'message' => 'Offre modifiée avec succès.',
+             'offre' => $offre
+         ], 200);
+ 
+     } catch (\Exception $e) {
+         return response()->json([
+             'error' => 'Une erreur est survenue lors de la modification de l\'offre.',
+             'details' => $e->getMessage()
+         ], 500);
+     }
+ }
+ 
     
 
     /**
@@ -403,6 +426,162 @@ public function afficheOffreExpireeRec()
     return response()->json($offres);
 }
 
+//offre-candidat
 
-    
+public function afficherOffreCandidat()
+{
+    // Récupérer les offres qui ne sont pas encore expirées et qui sont validées
+    $offres = Offre::where('dateExpiration', '>', now())
+        ->where('valider', 1)
+        ->get();
+
+    // Parcourir les offres pour ajouter une clé dynamique "statut" dans la réponse
+    $offres->transform(function ($offre) {
+        // Utilisation de Carbon pour manipuler la date d'expiration
+        $expiration = \Carbon\Carbon::parse($offre->dateExpiration);
+        
+        // Calculer la différence entre la date actuelle et la date d'expiration
+        $diffInDays = now()->diffInDays($expiration, false);
+        
+        // Ajouter une clé dynamique 'statut' avec la valeur 'urgent' ou 'normal'
+        $offre->statut = $diffInDays <= 3 ? 'urgent' : 'normal';
+
+        return $offre;
+    });
+
+    // Retourner les offres avec la clé 'statut' dynamique
+    return response()->json($offres);
+}
+
+public function afficheVillesEtDomainesDistincts()
+{
+    $villes = Offre::where('valider', 1)->distinct()->pluck('ville');
+    $domaines = Offre::where('valider', 1)->distinct()->pluck('domaine');
+
+    return response()->json([
+        'villes' => $villes,
+        'domaines' => $domaines
+    ]);
+}
+public function rechercheOffresss(Request $request)
+{
+    $query = Offre::where('valider', 1);
+
+    // Filtrer par poste
+    if ($request->has('poste')) {
+        $query->where('poste', 'like', '%' . $request->input('poste') . '%');
+    }
+
+    // Filtrer par ville
+    if ($request->has('ville')) {
+        $query->where('ville', 'like', '%' . $request->input('ville') . '%');
+    }
+
+    // Filtrer par domaine
+    if ($request->has('domaine')) {
+        $query->where('domaine', 'like', '%' . $request->input('domaine') . '%');
+    }
+
+    // Filtrer par type de poste
+    if ($request->has('typePoste')) {
+        $typePoste = explode(',', $request->input('typePoste'));
+        $query->whereIn('typePoste', $typePoste);
+    }
+
+    // Filtrer par date de publication
+    if ($request->has('datePublication')) {
+        $datePublication = $request->input('datePublication');
+        switch ($datePublication) {
+            case 'derniere_heure':
+                $query->where('created_at', '>=', Carbon::now()->subHour());
+                break;
+            case '24_heure':
+                $query->where('created_at', '>=', Carbon::now()->subDay());
+                break;
+            case 'derniers_7_jours':
+                $query->where('created_at', '>=', Carbon::now()->subDays(7));
+                break;
+        }
+    }
+
+    // Filtrer par niveau d'expérience
+    if ($request->has('niveauExperience')) {
+        if ($request->input('niveauExperience') === 'plus_de_3ans') {
+            // Pour "Plus de 3 ans", filtrer tous les niveaux supérieurs à 3ans
+            $query->whereIn('niveauExperience', ['4ans', '5ans', '6ans', '7ans', '8ans', '9ans', '10ans']);
+        } elseif ($request->input('niveauExperience') !== 'tous') {
+            // Pour les autres niveaux spécifiques
+            $query->where('niveauExperience', $request->input('niveauExperience'));
+        }
+    }
+    // Vérifier également le paramètre niveauExperience_min (pour compatibilité)
+    elseif ($request->has('niveauExperience_min')) {
+        $query->whereIn('niveauExperience', ['4ans', '5ans', '6ans', '7ans', '8ans', '9ans', '10ans']);
+    }
+
+    // Filtrer par type de travail
+    if ($request->has('typeTravail')) {
+        $query->where('typeTravail', $request->input('typeTravail'));
+    }
+
+    $offres = $query->get();
+    return response()->json($offres);
+}
+public function rechercheAcceuil(Request $request)
+{
+    $query = Offre::where('valider', 1); // Filtrer uniquement les offres validées
+
+    if ($request->has('domaine')) {
+        $query->where('domaine', 'like', '%' . $request->input('domaine') . '%');
+    }
+    if ($request->has('departement')) {
+        $query->where('departement', 'like', '%' . $request->input('departement') . '%');
+    }
+
+    $offres = $query->get();
+    return response()->json($offres);
+}
+
+public function afficheDepartementsEtDomainesDistincts()
+{
+    $departements = Offre::where('valider', 1)->distinct()->pluck('departement');
+    $domaines = Offre::where('valider', 1)->distinct()->pluck('domaine');
+
+    return response()->json([
+        'departements' => $departements,
+        'domaines' => $domaines
+    ]);
+}
+
+public function showDetail($id)
+{
+    // Trouver l'offre par son ID
+    $offre = Offre::find($id);
+
+    // Vérifier si l'offre existe
+    if (!$offre) {
+        return response()->json(['message' => 'Offre non trouvée'], 404);
+    }
+
+    // Retourner les données de l'offre en JSON
+    return response()->json($offre);
+}
+  
+
+public function getByDepartement($domaine)
+{
+    // Récupérer les offres du département donné
+    $offres = Offre::where('domaine', $domaine)->get();
+
+    // Vérifier si des offres existent
+    if ($offres->isEmpty()) {
+        return response()->json(['message' => 'Aucune offre trouvée pour ce département'], 404);
+    }
+
+    // Retourner les offres en JSON
+    return response()->json($offres);
+}
+
+
+
 }

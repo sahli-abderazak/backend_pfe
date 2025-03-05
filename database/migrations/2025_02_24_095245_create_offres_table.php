@@ -19,6 +19,18 @@ return new class extends Migration
             $table->date('datePublication')->default(now()); // Date du jour par défaut
             $table->date('dateExpiration');
             $table->boolean('valider')->default(false); // Ajout du champ valider (false par défaut)
+
+            $table->string('typePoste'); // Temps plein, CDD, CDI, etc.
+            $table->string('typeTravail'); // Sur site, Hybride, Télétravail
+            $table->string('heureTravail'); // Ex: "9h-17h"
+            $table->string('niveauExperience'); // Ex: Débutant, Intermédiaire, Expert
+            $table->string('niveauEtude'); // Ex: Bac+3, Bac+5
+            $table->string('pays');
+            $table->string('ville');
+            $table->string('societe'); // Nom de la société
+            $table->string('domaine'); // Ex: Informatique, Marketing
+            $table->text('responsabilite'); // Liste des responsabilités
+            $table->text('experience'); // Expérience requise
             $table->timestamps();
         });
     }  

@@ -24,6 +24,7 @@ class User extends Authenticatable
         'image',
         'cv',
         'archived',
+        'nom_societe',
 
     ];
 

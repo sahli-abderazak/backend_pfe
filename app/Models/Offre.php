@@ -32,5 +32,16 @@ class Offre extends Model
         'datePublication',
         'dateExpiration',
         'valider',
+        'typePoste',
+        'typeTravail',
+        'heureTravail',
+        'niveauExperience',
+        'niveauEtude',
+        'pays',
+        'ville',
+        'societe',
+        'domaine',
+        'responsabilite',
+        'experience',
     ];
 }
