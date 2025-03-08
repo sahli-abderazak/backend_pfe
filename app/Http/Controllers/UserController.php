@@ -131,6 +131,9 @@ class UserController extends Controller
  *     )
  * )
  */
+
+
+ 
     public function archiveUser($id)
     {
         $user = User::find($id);
@@ -205,16 +208,16 @@ class UserController extends Controller
  * )
  */
 
-    public function getCurrentUserInfo()
-    {
-        $user = Auth::user();
-        
-        return response()->json([
-            'nom' => $user->nom,
-            'prenom' => $user->prenom,
-            'image' => $user->image ? asset('storage/' . $user->image) : null,
-        ]);
+ public function getCurrentUserInfo()
+ {
+     $user = Auth::user();
+     
+     return response()->json([
+         'nom' => $user->nom,
+         'prenom' => $user->prenom,
+         'image' => $user->image ? asset('storage/' . $user->image) : null,
+     ]);
 
-    }
+ }
 
 }

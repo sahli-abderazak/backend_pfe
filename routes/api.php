@@ -1,4 +1,5 @@
 <?php
+use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CandidatController;
 use App\Http\Controllers\ContactController;
@@ -18,11 +19,25 @@ Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
 
 Route::post('login', [AuthController::class, 'login']);
 Route::post('register', [AuthController::class, 'register']);
+// Route pour la vérification du code de vérification
+Route::post('/verify-code', [AuthController::class, 'verifyCode']);
+Route::post('/resend-verification-code', [AuthController::class, 'resendVerificationCodeLogin']);
+
+
+
+//mot de passe oublie
+Route::post('/forgot-password', [AuthController::class, 'sendVerificationCode']);
+Route::post('/verifyForgetCode', [AuthController::class, 'verifyCoderest']);
+Route::post('/reset-password', [AuthController::class, 'resetPassword']);
+
+
+Route::middleware('auth:sanctum')->post('/update-password', [AuthController::class, 'updatePassword']);
+
+
 Route::middleware('auth:sanctum')->get('users', [UserController::class, 'index']);
 Route::middleware('auth:sanctum')->post('logout', [AuthController::class, 'logout']);
 Route::delete('users/{id}', [UserController::class, 'destroy']);
 Route::middleware('auth:sanctum')->put('/user/update/{id}', [AuthController::class, 'updateAdmin']);
-
 
 
 Route::put('/user/updateRec/{id}', [AuthController::class, 'updateRec']);
@@ -37,25 +52,29 @@ Route::middleware('auth:sanctum')->get('users/profile', [AuthController::class, 
 
 //contact
 Route::post('/contacts', [ContactController::class, 'store']);
+Route::middleware('auth:sanctum')->get('/showcontacts', [ContactController::class, 'index']);
+Route::middleware('auth:sanctum')->delete('/deleteContact/{id}',[ContactController::class,'deleteContact']);
+Route::middleware('auth:sanctum')->put('/markasreplied/{id}', [ContactController::class, 'markAsReplied']);
 
 //temoingage
 Route::post('/temoiniage', [TemoignageController::class, 'store']);
 Route::get('/temoignagesValides', [TemoignageController::class, 'showTemoin']);
-
+Route::middleware('auth:sanctum')->get('/temoiniages_admin', [TemoignageController::class, 'getAllTemoiniages']);
+Route::middleware('auth:sanctum')->put('temoiniages/valider/{id}', [TemoignageController::class, 'validerTemoiniage']);
+Route::middleware('auth:sanctum')->delete('/temoignageSupp/{id}', [TemoignageController::class, 'deleteTemoignage']);
 
 //offre
 Route::middleware('auth:sanctum')->post('/addOffres', [OffreController::class, 'ajoutOffre']); // Ajouter une offre
 Route::middleware('auth:sanctum')->get('/Alloffresnvalide', [OffreController::class, 'afficheOffreNValider']); // Afficher toutes les offres non validée
 Route::middleware('auth:sanctum')->get('/AlloffresValide', [OffreController::class, 'afficheOffreValide']); // Afficher toutes les offres validée
-Route::middleware('auth:sanctum')->get('/offres-departement', [OffreController::class, 'offresParDepartement']);
+Route::middleware('auth:sanctum')->get('/offres-societe', [OffreController::class, 'offresParSociete']);
 Route::middleware('auth:sanctum')->put('/validerOffre/{id}', [OffreController::class, 'validerOffre']);
 Route::middleware('auth:sanctum')->delete('/supprimerOffre/{id}', [OffreController::class, 'supprimerOffre']);
 Route::middleware('auth:sanctum')->put('/offres-departement/{id}', [OffreController::class, 'modifierOffre']);
 Route::middleware('auth:sanctum')->put('/prolonger-offre/{id}', [OffreController::class, 'prolongerOffre']);
 Route::middleware('auth:sanctum')->get('/AlloffresExpiree', [OffreController::class, 'afficheOffreExpiree']); // Afficher toutes les offres expirées
-Route::middleware('auth:sanctum')->get('/offres-expirees-departement', [OffreController::class, 'afficheOffreExpireeRec']);
-
-
+Route::middleware('auth:sanctum')->get('/offres-recruteur-valides', [OffreController::class, 'offreValideRecruteur']);
+Route::middleware('auth:sanctum')->get('/offres-expirees-societe', [OffreController::class, 'afficheOffreExpireeRec']);
 
 //offre-candidat
 Route::get('/offres-candidat', [OffreController::class, 'afficherOffreCandidat']);
@@ -70,6 +89,12 @@ Route::get('/offres_domaine/{domaine}', [OffreController::class, 'getByDeparteme
 Route::post('/candidatStore', [CandidatController::class, 'storeCandidat']);
 Route::get('/recruteurs_acceuil', [UserController::class, 'recruteurAcceuil']);
 
+//affichageCandidatOffre
+Route::middleware('auth:sanctum')->get('/candidats-offre', [CandidatController::class, 'showcandidatOffre']);
+//archiverCandidat
+Route::middleware('auth:sanctum')->put('/candidats/archiver/{id}', [CandidatController::class, 'archiverCandidat']);
+Route::middleware('auth:sanctum')->get('/candidats_archived_societe', [CandidatController::class, 'getArchivedCandidatesByCompany']);
+Route::middleware('auth:sanctum')->put('/candidats_desarchiver/{id}', [CandidatController::class, 'desarchiverCandidat']);
 
 
 

@@ -4,7 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-
+use Illuminate\Support\Facades\Storage;
 class Candidat extends Model
 {
     use HasFactory;
@@ -12,6 +12,7 @@ class Candidat extends Model
     protected $fillable = [
         'nom', 'prenom', 'email', 'pays', 'ville', 'codePostal', 'niveauExperience', 'tel', 'niveauEtude', 'cv', 'offre_id'
     ];
+
 
     /**
      * Relation avec l'offre

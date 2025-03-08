@@ -31,4 +31,39 @@ class ContactController extends Controller
             'contact' => $contact
         ], 201);
     }
+
+
+
+    public function index()
+    {
+        $contacts = Contact::all(); // Récupérer tous les contacts
+        return response()->json($contacts); // Retourner les données en JSON
+    }
+
+    public function deleteContact($id)
+    {
+        $contact = Contact::find($id);
+    
+        if (!$contact) {
+            return response()->json(['message' => 'Contact non trouvé'], 404);
+        }
+    
+        $contact->delete();
+    
+        return response()->json(['message' => 'Contact supprimé avec succès']);
+    }
+    public function markAsReplied($id)
+    {
+        $contact = Contact::find($id);
+        
+        if (!$contact) {
+            return response()->json(['message' => 'Contact non trouvé'], 404);
+        }
+        
+        $contact->repondu = true;
+        $contact->save();
+        
+        return response()->json(['message' => 'Contact marqué comme répondu', 'contact' => $contact]);
+    }
+    
 }

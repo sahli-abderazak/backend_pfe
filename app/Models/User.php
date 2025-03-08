@@ -25,6 +25,8 @@ class User extends Authenticatable
         'cv',
         'archived',
         'nom_societe',
+        'active',
+        'code_verification',
 
     ];
 

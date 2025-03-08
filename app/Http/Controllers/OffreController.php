@@ -128,17 +128,21 @@ public function ajoutOffre(Request $request)
  * )
  */
 
-    public function offresParDepartement()
-    {
-        // Récupérer l'utilisateur connecté
-        $user = Auth::user();  // Assurez-vous que l'utilisateur est authentifié
+ public function offresParSociete() {
+    // Récupérer l'utilisateur connecté
+    $user = Auth::user();
 
-        // Récupérer les offres correspondant au département de l'utilisateur
-        $offres = Offre::where('departement', $user->departement)->get();
-
-        // Retourner les offres au format JSON
-        return response()->json($offres);
+    // Vérifier que l'utilisateur est authentifié
+    if (!$user) {
+        return response()->json(['error' => 'Utilisateur non authentifié'], 401);
     }
+
+    // Récupérer les offres correspondant à la société de l'utilisateur
+    $offres = Offre::where('societe', $user->nom_societe)->where('valider', 0)->get();
+
+    // Retourner les offres au format JSON
+    return response()->json($offres);
+}
 
 
 /**
@@ -408,23 +412,23 @@ public function afficheOffreExpiree()
  * )
  */
 
-public function afficheOffreExpireeRec()
-{
-    // Récupérer l'utilisateur connecté
-    $user = Auth::user();
-
-    // Vérifier si l'utilisateur a un département
-    if (!$user->departement) {
-        return response()->json(['error' => 'Le département de l\'utilisateur n\'est pas défini.'], 400);
-    }
-
-    // Récupérer les offres expirées dont le département correspond à celui de l'utilisateur
-    $offres = Offre::where('departement', $user->departement)
-                   ->where('dateExpiration', '<', now())  // Vérifier que la date d'expiration est passée
-                   ->get();
-
-    return response()->json($offres);
-}
+ public function afficheOffreExpireeRec()
+ {
+     // Récupérer l'utilisateur connecté
+     $user = Auth::user();
+ 
+     // Vérifier si l'utilisateur a une société associée
+     if (!$user || !$user->nom_societe) {
+         return response()->json(['error' => 'La société de l\'utilisateur n\'est pas définie.'], 400);
+     }
+ 
+     // Récupérer les offres expirées appartenant à la société de l'utilisateur
+     $offres = Offre::where('societe', $user->nom_societe)
+                    ->where('dateExpiration', '<', now())  // Vérifier que la date d'expiration est passée
+                    ->get();
+ 
+     return response()->json($offres);
+ }
 
 //offre-candidat
 
@@ -509,6 +513,9 @@ public function rechercheOffresss(Request $request)
         if ($request->input('niveauExperience') === 'plus_de_3ans') {
             // Pour "Plus de 3 ans", filtrer tous les niveaux supérieurs à 3ans
             $query->whereIn('niveauExperience', ['4ans', '5ans', '6ans', '7ans', '8ans', '9ans', '10ans']);
+        } elseif ($request->input('niveauExperience') === 'sans_experience') {
+            // Pour "Sans expérience", utiliser la valeur exacte de la base de données
+            $query->where('niveauExperience', 'Sans expérience');
         } elseif ($request->input('niveauExperience') !== 'tous') {
             // Pour les autres niveaux spécifiques
             $query->where('niveauExperience', $request->input('niveauExperience'));
@@ -527,6 +534,7 @@ public function rechercheOffresss(Request $request)
     $offres = $query->get();
     return response()->json($offres);
 }
+
 public function rechercheAcceuil(Request $request)
 {
     $query = Offre::where('valider', 1); // Filtrer uniquement les offres validées
@@ -582,6 +590,22 @@ public function getByDepartement($domaine)
     return response()->json($offres);
 }
 
+public function offreValideRecruteur(Request $request)
+{
+    $user = $request->user(); // Récupérer l'utilisateur authentifié
+    
+    // Vérifier si l'utilisateur a une société associée
+    if (!$user || !$user->nom_societe) {
+        return response()->json(['message' => 'Aucune société associée à cet utilisateur.'], 403);
+    }
 
+    // Récupérer les offres validées, non expirées et appartenant à la société du recruteur
+    $offres = Offre::where('valider', true)
+        ->where('dateExpiration', '>', now())
+        ->where('societe', $user->nom_societe) // Filtrer par le nom de la société
+        ->get();
+
+    return response()->json($offres);
+}
 
 }
