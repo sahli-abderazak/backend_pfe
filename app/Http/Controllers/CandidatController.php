@@ -3,6 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\Candidat;
+use App\Models\Notification;
+use App\Models\Offre;
+use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -18,7 +21,7 @@ class CandidatController extends Controller
         $request->validate([
             'nom' => 'required|string|max:255',
             'prenom' => 'required|string|max:255',
-            'email' => 'required|email|unique:candidats',
+            'email' => 'required|email',
             'pays' => 'required|string|max:255',
             'ville' => 'required|string|max:255',
             'codePostal' => 'required|string|max:10',
@@ -28,11 +31,24 @@ class CandidatController extends Controller
             'cv' => 'required|file|mimes:pdf,doc,docx|max:2048',
             'offre_id' => 'required|exists:offres,id',
         ]);
-
+    
+        // Vérifier si le candidat a déjà postulé à cette offre avec le même email
+        $existingApplication = Candidat::where('email', $request->email)
+                                       ->where('offre_id', $request->offre_id)
+                                       ->first();
+    
+        if ($existingApplication) {
+            return response()->json([
+                'error' => 'Vous avez déjà postulé à cette offre. Vous ne pouvez postuler qu\'une seule fois par offre.'
+            ], 400);
+        }
+    
+        // Sauvegarde du CV
         if ($request->hasFile('cv')) {
             $cvPath = $request->file('cv')->store('cvs', 'public'); // Sauvegarde dans storage/app/public/cvs
         }
-
+    
+        // Créer le candidat
         $candidat = Candidat::create([
             'nom' => $request->nom,
             'prenom' => $request->prenom,
@@ -46,9 +62,44 @@ class CandidatController extends Controller
             'cv' => $cvPath ?? null,
             'offre_id' => $request->offre_id,
         ]);
-
+    
+        // Trouver l'offre à laquelle le candidat a postulé
+        $offre = Offre::find($request->offre_id);
+    
+        if ($offre) {
+            // Trouver les recruteurs de la même société
+            $recruiters = User::where('nom_societe', $offre->societe)
+                              ->where('role', 'recruteur')
+                              ->where('active', true)
+                              ->get();
+    
+            // Créer une notification pour chaque recruteur
+            foreach ($recruiters as $recruiter) {
+                Notification::create([
+                    'type' => 'new_application',
+                    'message' => "Un candidat a postulé à votre offre d'emploi '{$offre->poste}'",
+                    'data' => [
+                        'candidate_id' => $candidat->id,
+                        'candidate_name' => $candidat->nom . ' ' . $candidat->prenom,
+                        'candidate_email' => $candidat->email,
+                        'offer_id' => $offre->id,
+                        'position' => $offre->poste,
+                        'department' => $offre->departement,
+                        'company' => $offre->societe,
+                        'application_id' => $candidat->id, // Pour navigation dans le frontend
+                    ],
+                    'user_id' => $recruiter->id,
+                    'read' => false,
+                ]);
+            }
+        }
+    
+        // Retourner la réponse avec le candidat créé
         return response()->json($candidat, 201);
     }
+    
+    
+    
     public function showcandidatOffre()
     {
         $user = Auth::user(); // Récupérer l'utilisateur connecté

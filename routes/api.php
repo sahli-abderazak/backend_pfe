@@ -3,6 +3,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CandidatController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TemoignageController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -97,4 +98,8 @@ Route::middleware('auth:sanctum')->get('/candidats_archived_societe', [CandidatC
 Route::middleware('auth:sanctum')->put('/candidats_desarchiver/{id}', [CandidatController::class, 'desarchiverCandidat']);
 
 
+//notif
 
+Route::middleware('auth:sanctum')->get('/notifications', [NotificationController::class, 'index']);
+Route::middleware('auth:sanctum')->patch('/notifications/{notification}', [NotificationController::class, 'markAsRead']);
+Route::middleware('auth:sanctum')->patch('/notifications', [NotificationController::class, 'markAllAsRead']);

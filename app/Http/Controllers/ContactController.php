@@ -3,6 +3,8 @@
 namespace App\Http\Controllers;
 
 use App\Models\Contact;
+use App\Models\Notification;
+use App\Models\User;
 use Illuminate\Http\Request;
 
 class ContactController extends Controller
@@ -16,7 +18,7 @@ class ContactController extends Controller
             'sujet' => 'required|string|max:255',
             'message' => 'required|string',
         ]);
-
+    
         // Création du contact dans la base de données
         $contact = Contact::create([
             'nom' => $request->nom,
@@ -24,14 +26,31 @@ class ContactController extends Controller
             'sujet' => $request->sujet,
             'message' => $request->message,
         ]);
-
+    
+        // Créer une notification pour les admins
+        $admins = User::where('role', 'admin')->get();
+        foreach ($admins as $admin) {
+            Notification::create([
+                'type' => 'new_contact',
+                'message' => "Nouveau message de contact: {$request->sujet}",
+                'data' => [
+                    'contact_id' => $contact->id,
+                    'name' => $contact->nom,
+                    'email' => $contact->email,
+                    'subject' => $contact->sujet,
+                    'message_preview' => substr($contact->message, 0, 100) . (strlen($contact->message) > 100 ? '...' : ''),
+                ],
+                'user_id' => $admin->id,
+                'read' => false,
+            ]);
+        }
+    
         // Retourner une réponse JSON (ou redirection si utilisé en web)
         return response()->json([
             'message' => 'Message envoyé avec succès !',
             'contact' => $contact
         ], 201);
     }
-
 
 
     public function index()

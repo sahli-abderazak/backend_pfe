@@ -12,7 +12,7 @@ use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use OpenApi\Annotations as OA;
 use Illuminate\Support\Str;
-
+use App\Models\Notification;
 
 /**
  * @OA\Info(
@@ -302,7 +302,7 @@ public function logout(Request $request)
         'role' => 'required|string',
         'image' => 'required|file|mimes:jpeg,png,jpg|max:2048',
         'cv' => 'required|file|mimes:pdf|max:5120',
-        'nom_societe'=>'required|string',
+        'nom_societe' => 'required|string|unique:users,nom_societe',
     ]);
 
     if ($validator->fails()) {
@@ -313,8 +313,8 @@ public function logout(Request $request)
     $imagePath = $request->file('image')->store('images', 'public');
     $cvPath = $request->file('cv')->store('cv', 'public');
 
-    // Générer un code de vérification unique (5 chiffres)
-    $verificationCode = Str::random(6);  // Génère un nombre aléatoire de 5 chiffres
+    // Générer un code de vérification unique
+    $verificationCode = Str::random(6);
 
     // Création de l'utilisateur
     $user = User::create([
@@ -330,14 +330,30 @@ public function logout(Request $request)
         'image' => $imagePath,
         'cv' => $cvPath,
         'nom_societe' => $request->nom_societe,
-        'active' => false, 
+        'active' => false,
         'code_verification' => $verificationCode,
     ]);
 
     // Envoi de l'email avec le code de vérification
     Mail::to($user->email)->send(new RecruiterAdded($user->nom . ' ' . $user->prenom, $verificationCode));
 
-    // Génération du token d'authentification (si tu souhaites générer un token immédiatement)
+    // Créer une notification pour les admins
+    User::where('role', 'admin')->each(function ($admin) use ($user) {
+        Notification::create([
+            'type' => 'new_recruiter',
+            'message' => "Nouveau recruteur inscrit: {$user->nom} {$user->prenom}",
+            'data' => [
+                'recruiter_id' => $user->id,
+                'recruiter_name' => $user->nom . ' ' . $user->prenom,
+                'recruiter_email' => $user->email,
+                'company' => $user->nom_societe,
+            ],
+            'user_id' => $admin->id,
+            'read' => false,
+        ]);
+    });
+
+    // Génération du token d'authentification
     $token = $user->createToken('backendPFE')->plainTextToken;
 
     return response()->json([

@@ -1,10 +1,13 @@
 <?php
 
 namespace App\Http\Controllers;
+
+use App\Models\Notification;
 use Carbon\Carbon;
 
 use Illuminate\Http\Request;
 use App\Models\Offre;
+use App\Models\User;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use OpenApi\Annotations as OA;
@@ -68,6 +71,28 @@ public function ajoutOffre(Request $request)
         'responsabilite' => $request->responsabilite,
         'experience' => $request->experience,
     ]);
+
+    // Get the authenticated user (recruiter)
+    $recruiter = auth()->user();
+    
+    // Create notifications for all admins
+    $admins = User::where('role', 'admin')->get();
+    foreach ($admins as $admin) {
+        Notification::create([
+            'type' => 'new_job_offer',
+            'message' => "Nouvelle offre d'emploi ajoutée: {$request->poste} chez {$request->societe}",
+            'data' => [
+                'offer_id' => $offre->id,
+                'position' => $offre->poste,
+                'company' => $offre->societe,
+                'department' => $offre->departement,
+                'recruiter_id' => $recruiter->id,
+                'recruiter_name' => $recruiter->nom . ' ' . $recruiter->prenom,
+            ],
+            'user_id' => $admin->id,
+            'read' => false,
+        ]);
+    }
 
     return response()->json([
         'message' => 'Offre ajoutée avec succès',
@@ -164,27 +189,51 @@ public function ajoutOffre(Request $request)
  */
 
 
-    public function validerOffre($id)
-    {
-        // Récupérer l'offre par son ID
-        $offre = Offre::find($id);
+ public function validerOffre($id)
+ {
+     // Récupérer l'offre par son ID
+     $offre = Offre::find($id);
+ 
+     // Vérifier si l'offre existe
+     if (!$offre) {
+         return response()->json(['error' => 'Offre non trouvée.'], 404);
+     }
+ 
+     // Mettre à jour l'état de l'offre pour la marquer comme validée
+     $offre->valider = true;
+     $offre->save();
+ 
+     // Trouver le recruteur qui a la même société que l'offre
+     // Nous supposons que le recruteur a le rôle 'recruteur'
+     $recruiter = User::where('nom_societe', $offre->societe)
+                      ->where('role', 'recruteur')
+                      ->first();
+ 
+     if ($recruiter) {
+         // Créer une notification pour le recruteur
+         Notification::create([
+             'type' => 'offer_validated',
+             'message' => "Votre offre d'emploi '{$offre->poste}' a été validée",
+             'data' => [
+                 'offer_id' => $offre->id,
+                 'position' => $offre->poste,
+                 'department' => $offre->departement,
+                 'company' => $offre->societe,
+             ],
+             'user_id' => $recruiter->id,
+             'read' => false,
+         ]);
+     }
+ 
+     // Retourner une réponse
+     return response()->json([
+         'message' => 'Offre validée avec succès.',
+         'offre' => $offre
+     ], 200);
+ }
 
-        // Vérifier si l'offre existe
-        if (!$offre) {
-            return response()->json(['error' => 'Offre non trouvée.'], 404);
-        }
 
-        // Mettre à jour l'état de l'offre pour la marquer comme validée
-        $offre->valider = true;
-        $offre->save();
-
-        // Retourner une réponse
-        return response()->json([
-            'message' => 'Offre validée avec succès.',
-            'offre' => $offre
-        ], 200);
-    }
-
+ 
 
 /**
  * @OA\Delete(
