@@ -3,8 +3,10 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CandidatController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TemoignageController;
+use App\Http\Controllers\TypingController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\UserController;
@@ -76,6 +78,10 @@ Route::middleware('auth:sanctum')->put('/prolonger-offre/{id}', [OffreController
 Route::middleware('auth:sanctum')->get('/AlloffresExpiree', [OffreController::class, 'afficheOffreExpiree']); // Afficher toutes les offres expirées
 Route::middleware('auth:sanctum')->get('/offres-recruteur-valides', [OffreController::class, 'offreValideRecruteur']);
 Route::middleware('auth:sanctum')->get('/offres-expirees-societe', [OffreController::class, 'afficheOffreExpireeRec']);
+Route::middleware('auth:sanctum')->get('/recherche-offre/{poste}', [OffreController::class, 'rechercheOffre']);
+
+
+
 
 //offre-candidat
 Route::get('/offres-candidat', [OffreController::class, 'afficherOffreCandidat']);
@@ -85,6 +91,9 @@ Route::post('/recherche-acceuil', [OffreController::class, 'rechercheAcceuil']);
 Route::get('/departements-domaines', [OffreController::class, 'afficheDepartementsEtDomainesDistincts']);
 Route::get('/offreDetail/{id}', [OffreController::class, 'showDetail']);
 Route::get('/offres_domaine/{domaine}', [OffreController::class, 'getByDepartement']);
+Route::get('/recherche-candidat', action: [CandidatController::class, 'rechercheCandidat']);
+
+
 
 //PostulerCandidat
 Route::post('/candidatStore', [CandidatController::class, 'storeCandidat']);
@@ -103,3 +112,15 @@ Route::middleware('auth:sanctum')->put('/candidats_desarchiver/{id}', [CandidatC
 Route::middleware('auth:sanctum')->get('/notifications', [NotificationController::class, 'index']);
 Route::middleware('auth:sanctum')->patch('/notifications/{notification}', [NotificationController::class, 'markAsRead']);
 Route::middleware('auth:sanctum')->patch('/notifications', [NotificationController::class, 'markAllAsRead']);
+
+
+// Messages entre admin et recruteur
+Route::middleware('auth:sanctum')->get('/contactable-users', [MessageController::class, 'getContactableUsers']);
+Route::middleware('auth:sanctum')->get('/messages/{userId}', [MessageController::class, 'getMessages']);
+Route::middleware('auth:sanctum')->post('/messages', [MessageController::class, 'sendMessage']);
+Route::middleware('auth:sanctum')->patch('/messages/{messageId}/read', [MessageController::class, 'markAsRead']);
+Route::middleware('auth:sanctum')->patch('/messages/read-all/{userId}', [MessageController::class, 'markAllAsRead']);
+Route::middleware('auth:sanctum')->get('/messages/unread-counts', [MessageController::class, 'getUnreadCounts']);
+Route::middleware('auth:sanctum')->get('/messages/unread-total', [MessageController::class, 'getUnreadTotal']);
+
+Route::middleware('auth:sanctum')->post('/typing', [TypingController::class, 'typing']);

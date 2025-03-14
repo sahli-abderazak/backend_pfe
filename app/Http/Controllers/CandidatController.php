@@ -178,5 +178,19 @@ public function desarchiverCandidat($id)
     
         return response()->json(['message' => 'Candidat archivé avec succès', 'candidat' => $candidat], 200);
     }
+
+    public function rechercheCandidat($nom = null, $prenom = null)
+{
+    $query = Candidat::query();
+
+    if (!empty($nom)) {
+        $query->where('nom', 'like', '%' . $nom . '%');
+    }
+    if (!empty($prenom)) {
+        $query->where('prenom', 'like', '%' . $prenom . '%');
+    }
+
+    return $query->get();
+}
     
 }

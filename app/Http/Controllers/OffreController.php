@@ -657,4 +657,9 @@ public function offreValideRecruteur(Request $request)
     return response()->json($offres);
 }
 
+public function rechercheOffre($poste)
+{
+    return Offre::where('poste', 'like', '%' . $poste . '%')->get();
+}
+
 }
