@@ -16,7 +16,7 @@ class UserController extends Controller
     {
         $recruteurs = User::where('role', 'recruteur')
                           ->where('archived', 0)
-                          ->select('nom', 'prenom', 'email', 'poste', 'nom_societe', 'image') // Sélectionner uniquement les champs nécessaires
+                          ->select(   'nom_societe', 'image','domaine_activite','apropos') // Sélectionner uniquement les champs nécessaires
                           ->get();
     
         foreach ($recruteurs as $recruteur) {
@@ -57,7 +57,6 @@ class UserController extends Controller
 
     foreach ($recruteurs as $recruteur) {
         $recruteur->image = $recruteur->image ? asset('storage/' . $recruteur->image) : null;
-        $recruteur->cv = $recruteur->cv ? asset('storage/' . $recruteur->cv) : null;
     }
 
     return response()->json($recruteurs);
@@ -175,9 +174,6 @@ class UserController extends Controller
     public function getArchivedUsers()
     {
         $archivedUsers = User::where('archived', true)->get();
-        foreach ($archivedUsers as $recruteur) {
-            $recruteur->cv = $recruteur->cv ? asset('storage/' . $recruteur->cv) : null;
-        }
         return response()->json($archivedUsers, 200);
     }
 
@@ -214,8 +210,7 @@ class UserController extends Controller
      $user = Auth::user();
      
      return response()->json([
-         'nom' => $user->nom,
-         'prenom' => $user->prenom,
+        'nom_societe' => $user->nom_societe ?? null,
          'image' => $user->image ? asset('storage/' . $user->image) : null,
      ]);
 

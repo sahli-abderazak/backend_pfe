@@ -66,15 +66,16 @@ public function showProfile(Request $request)
         return response()->json(['error' => 'Utilisateur non trouvé.'], 404);
     }
 
-    // Vérifie si un CV existe et génère un lien public vers le fichier
+    // Récupère uniquement les champs nécessaires
     $userData = $user->only([
-        'id', 'email', 'departement', 'nom', 'prenom', 'numTel', 'poste', 'adresse', 'image' ,'role' , 'nom_societe' , 'cv'
+        'id', 'email', 'numTel', 'adresse', 'image', 'role', 'nom_societe',
+        // Nouveaux champs
+        'apropos', 'lien_site_web', 'fax', 'domaine_activite'
+        // Suppression de: 'departement', 'nom', 'prenom', 'poste', 'cv'
     ]);
 
-    // Ajoute l'URL du CV si disponible
-    $userData['cv'] = $user->cv ? asset('storage/' . $user->cv) : null;
+    // Ajoute l'URL de l'image si disponible
     $userData['image'] = $user->image ? asset('storage/' . $user->image) : null;
-
 
     return response()->json($userData, 200);
 }
@@ -293,16 +294,17 @@ public function logout(Request $request)
     $validator = Validator::make($request->all(), [
         'email' => 'required|email|unique:users,email',
         'password' => 'required|min:8',
-        'nom' => 'required|string',
-        'prenom' => 'required|string',
+        // Suppression de: 'nom', 'prenom', 'departement', 'poste', 'cv'
         'numTel' => 'required|string',
-        'departement' => 'required|string',
-        'poste' => 'required|string',
         'adresse' => 'required|string',
         'role' => 'required|string',
         'image' => 'required|file|mimes:jpeg,png,jpg|max:2048',
-        'cv' => 'required|file|mimes:pdf|max:5120',
         'nom_societe' => 'required|string|unique:users,nom_societe',
+        // Nouveaux champs
+        'apropos' => 'nullable|string',
+        'lien_site_web' => 'nullable|string|url',
+        'fax' => 'nullable|string',
+        'domaine_activite' => 'required|string',
     ]);
 
     if ($validator->fails()) {
@@ -311,7 +313,7 @@ public function logout(Request $request)
 
     // Stockage des fichiers
     $imagePath = $request->file('image')->store('images', 'public');
-    $cvPath = $request->file('cv')->store('cv', 'public');
+    // Suppression du stockage du CV
 
     // Générer un code de vérification unique
     $verificationCode = Str::random(6);
@@ -320,31 +322,32 @@ public function logout(Request $request)
     $user = User::create([
         'email' => $request->email,
         'password' => Hash::make($request->password),
-        'departement' => $request->departement,
-        'nom' => $request->nom,
-        'prenom' => $request->prenom,
+        // Suppression de: 'departement', 'nom', 'prenom', 'poste', 'cv'
         'numTel' => $request->numTel,
-        'poste' => $request->poste,
         'adresse' => $request->adresse,
         'role' => $request->role,
         'image' => $imagePath,
-        'cv' => $cvPath,
         'nom_societe' => $request->nom_societe,
         'active' => false,
         'code_verification' => $verificationCode,
+        // Nouveaux champs
+        'apropos' => $request->apropos,
+        'lien_site_web' => $request->lien_site_web,
+        'fax' => $request->fax,
+        'domaine_activite' => $request->domaine_activite,
     ]);
 
     // Envoi de l'email avec le code de vérification
-    Mail::to($user->email)->send(new RecruiterAdded($user->nom . ' ' . $user->prenom, $verificationCode));
+    Mail::to($user->email)->send(new RecruiterAdded($user->nom_societe, $verificationCode));
 
     // Créer une notification pour les admins
     User::where('role', 'admin')->each(function ($admin) use ($user) {
         Notification::create([
             'type' => 'new_recruiter',
-            'message' => "Nouveau recruteur inscrit: {$user->nom} {$user->prenom}",
+            'message' => "Nouveau recruteur inscrit: {$user->nom_societe}",
             'data' => [
                 'recruiter_id' => $user->id,
-                'recruiter_name' => $user->nom . ' ' . $user->prenom,
+                'recruiter_name' => $user->nom_societe,
                 'recruiter_email' => $user->email,
                 'company' => $user->nom_societe,
             ],
@@ -362,7 +365,6 @@ public function logout(Request $request)
         'user' => $user,
     ], 201);
 }
-
 
 public function verifyCode(Request $request)
 {
@@ -407,7 +409,7 @@ public function resendVerificationCodeLogin(Request $request)
     $user->save();
 
     // Renvoyer l'email avec le nouveau code
-    Mail::to($user->email)->send(new RecruiterAdded($user->nom . ' ' . $user->prenom, $newVerificationCode));
+    Mail::to($user->email)->send(new RecruiterAdded($user->nom_societe, $newVerificationCode));
 
     return response()->json(['message' => 'Un nouveau code de vérification a été envoyé'], 200);
 }
@@ -415,7 +417,7 @@ public function resendVerificationCodeLogin(Request $request)
 
 
 
-public function updateRec(Request $request)
+function updateRec(Request $request)
 {
     try {
         // Récupérer l'utilisateur à partir du token
@@ -426,29 +428,32 @@ public function updateRec(Request $request)
         }
 
         // Validation des données entrantes
-        $validatedData = $request->validate([
+        $validator = Validator::make($request->all(), [
             'password' => 'nullable|min:8',
-            'nom' => 'nullable|string',
-            'prenom' => 'nullable|string',
+            // Suppression de: 'nom', 'prenom'
             'numTel' => 'nullable|string',
             'adresse' => 'nullable|string',
             'image' => 'nullable|file|mimes:jpeg,png,jpg|max:2048',
-            'cv' => 'nullable|file|mimes:pdf|max:5120',
+            // Suppression de: 'cv'
+            // Nouveaux champs
+            'apropos' => 'nullable|string',
+            'lien_site_web' => 'nullable|string|url',
+            'fax' => 'nullable|string',
+            'domaine_activite' => 'nullable|string',
         ]);
 
-       
+        if ($validator->fails()) {
+            return response()->json(['error' => $validator->errors()], 422);
+        }
+
+        $validatedData = $validator->validated();
+
 
         if (isset($validatedData['password'])) {
             $user->password = Hash::make($validatedData['password']);
         }
 
-        if (isset($validatedData['nom'])) {
-            $user->nom = $validatedData['nom'];
-        }
-
-        if (isset($validatedData['prenom'])) {
-            $user->prenom = $validatedData['prenom'];
-        }
+        // Suppression des mises à jour pour 'nom' et 'prenom'
 
         if (isset($validatedData['numTel'])) {
             $user->numTel = $validatedData['numTel'];
@@ -456,6 +461,23 @@ public function updateRec(Request $request)
 
         if (isset($validatedData['adresse'])) {
             $user->adresse = $validatedData['adresse'];
+        }
+
+        // Nouveaux champs
+        if (isset($validatedData['apropos'])) {
+            $user->apropos = $validatedData['apropos'];
+        }
+
+        if (isset($validatedData['lien_site_web'])) {
+            $user->lien_site_web = $validatedData['lien_site_web'];
+        }
+
+        if (isset($validatedData['fax'])) {
+            $user->fax = $validatedData['fax'];
+        }
+
+        if (isset($validatedData['domaine_activite'])) {
+            $user->domaine_activite = $validatedData['domaine_activite'];
         }
 
         // Gérer l'upload de l'image
@@ -467,14 +489,7 @@ public function updateRec(Request $request)
             $user->image = $imagePath;
         }
 
-        // Gérer l'upload du CV
-        if ($request->hasFile('cv') && $request->file('cv')->isValid()) {
-            if ($user->cv) {
-                Storage::disk('public')->delete($user->cv);
-            }
-            $cvPath = $request->file('cv')->store('cv', 'public');
-            $user->cv = $cvPath;
-        }
+        // Suppression de la gestion du CV
 
         // Sauvegarde des modifications
         $user->save();
@@ -482,12 +497,17 @@ public function updateRec(Request $request)
         // Préparer la réponse
         $userData = [
             'id' => $user->id,
-            'nom' => $user->nom,
-            'prenom' => $user->prenom,
+            // Suppression de: 'nom', 'prenom'
+            'nom_societe' => $user->nom_societe,
             'numTel' => $user->numTel,
             'adresse' => $user->adresse,
             'image' => $user->image ? asset('storage/' . $user->image) : null,
-            'cv' => $user->cv ? asset('storage/' . $user->cv) : null,
+            // Suppression de: 'cv'
+            // Nouveaux champs
+            'apropos' => $user->apropos,
+            'lien_site_web' => $user->lien_site_web,
+            'fax' => $user->fax,
+            'domaine_activite' => $user->domaine_activite,
         ];
 
         return response()->json([
@@ -496,8 +516,6 @@ public function updateRec(Request $request)
         ], 200);
 
     } catch (\Illuminate\Validation\ValidationException $e) {
-        return response()->json(['error' => $e->errors()], 422);
-    } catch (\Exception $e) {
         return response()->json(['error' => 'Une erreur est survenue'], 500);
     }
 }

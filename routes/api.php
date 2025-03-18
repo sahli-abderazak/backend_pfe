@@ -93,6 +93,8 @@ Route::get('/departements-domaines', [OffreController::class, 'afficheDepartemen
 Route::get('/offreDetail/{id}', [OffreController::class, 'showDetail']);
 Route::get('/offres_domaine/{domaine}', [OffreController::class, 'getByDepartement']);
 Route::get('/recherche-candidat', action: [CandidatController::class, 'rechercheCandidat']);
+//affichage candidat par offre
+Route::get('/candidatsByOffre/{offre_id}', [CandidatController::class, 'getCandidatsByOffre']);
 
 
 
@@ -106,6 +108,9 @@ Route::middleware('auth:sanctum')->get('/candidats-offre', [CandidatController::
 Route::middleware('auth:sanctum')->put('/candidats/archiver/{id}', [CandidatController::class, 'archiverCandidat']);
 Route::middleware('auth:sanctum')->get('/candidats_archived_societe', [CandidatController::class, 'getArchivedCandidatesByCompany']);
 Route::middleware('auth:sanctum')->put('/candidats_desarchiver/{id}', [CandidatController::class, 'desarchiverCandidat']);
+
+//supprimerCandidat
+Route::middleware('auth:sanctum')->delete('/candidatSupp/{id}', [CandidatController::class, 'deleteCandidat']);
 
 
 //notif

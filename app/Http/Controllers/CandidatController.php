@@ -192,5 +192,47 @@ public function desarchiverCandidat($id)
 
     return $query->get();
 }
+public function deleteCandidat($id)
+{
+    // Récupérer le candidat par son ID
+    $candidat = Candidat::find($id);
+
+    if (!$candidat) {
+        return response()->json(['message' => 'Candidat non trouvé'], 404);
+    }
+
+    // Supprimer le fichier CV du stockage s'il existe
+    if ($candidat->cv) {
+        Storage::disk('public')->delete($candidat->cv);
+    }
+
+    // Supprimer le candidat de la base de données
+    $candidat->delete();
+
+    return response()->json(['message' => 'Candidat supprimé avec succès'], 200);
+}
+
+public function getCandidatsByOffre($offre_id)
+{
+    // Vérifier si l'offre existe
+    $offre = Offre::find($offre_id);
     
+    if (!$offre) {
+        return response()->json(['message' => 'Offre non trouvée'], 404);
+    }
+
+    // Récupérer les candidats liés à cette offre
+    $candidats = Candidat::where('offre_id', $offre_id)
+        ->with('offre:id,poste,departement') // Charger les détails de l'offre
+        ->get();
+
+    // Ajouter l'URL du CV pour chaque candidat
+    foreach ($candidats as $candidat) {
+        $candidat->cv = $candidat->cv ? asset('storage/' . $candidat->cv) : null;
+    }
+
+    return response()->json($candidats, 200);
+}
+
+
 }

@@ -516,32 +516,32 @@ public function afficheVillesEtDomainesDistincts()
         'domaines' => $domaines
     ]);
 }
-public function rechercheOffresss(Request $request)
-{
+public function rechercheOffresss(Request $request) {
+    // Start with a base query for validated offers
     $query = Offre::where('valider', 1);
 
-    // Filtrer par poste
+    // Filter by position
     if ($request->has('poste')) {
         $query->where('poste', 'like', '%' . $request->input('poste') . '%');
     }
 
-    // Filtrer par ville
+    // Filter by city
     if ($request->has('ville')) {
         $query->where('ville', 'like', '%' . $request->input('ville') . '%');
     }
 
-    // Filtrer par domaine
+    // Filter by domain
     if ($request->has('domaine')) {
         $query->where('domaine', 'like', '%' . $request->input('domaine') . '%');
     }
 
-    // Filtrer par type de poste
+    // Filter by job type
     if ($request->has('typePoste')) {
         $typePoste = explode(',', $request->input('typePoste'));
         $query->whereIn('typePoste', $typePoste);
     }
 
-    // Filtrer par date de publication
+    // Filter by publication date
     if ($request->has('datePublication')) {
         $datePublication = $request->input('datePublication');
         switch ($datePublication) {
@@ -557,32 +557,40 @@ public function rechercheOffresss(Request $request)
         }
     }
 
-    // Filtrer par niveau d'expérience
+    // Filter by experience level
     if ($request->has('niveauExperience')) {
-        if ($request->input('niveauExperience') === 'plus_de_3ans') {
-            // Pour "Plus de 3 ans", filtrer tous les niveaux supérieurs à 3ans
-            $query->whereIn('niveauExperience', ['4ans', '5ans', '6ans', '7ans', '8ans', '9ans', '10ans']);
-        } elseif ($request->input('niveauExperience') === 'sans_experience') {
-            // Pour "Sans expérience", utiliser la valeur exacte de la base de données
+        $niveauExperience = $request->input('niveauExperience');
+        
+        if ($niveauExperience === '+10ans' || $niveauExperience === 'plus_10ans') {
+            // For "More than 10 years"
+            $query->where('niveauExperience', '+10ans');
+        } elseif ($niveauExperience === 'Sans expérience' || $niveauExperience === 'sans_experience') {
+            // For "No experience"
             $query->where('niveauExperience', 'Sans expérience');
-        } elseif ($request->input('niveauExperience') !== 'tous') {
-            // Pour les autres niveaux spécifiques
-            $query->where('niveauExperience', $request->input('niveauExperience'));
+        } elseif ($niveauExperience !== 'tous') {
+            // For specific levels (2ans, 5ans, 7ans)
+            $query->where('niveauExperience', $niveauExperience);
         }
     }
-    // Vérifier également le paramètre niveauExperience_min (pour compatibilité)
+    // Also check the niveauExperience_min parameter (for compatibility)
     elseif ($request->has('niveauExperience_min')) {
-        $query->whereIn('niveauExperience', ['4ans', '5ans', '6ans', '7ans', '8ans', '9ans', '10ans']);
+        $query->whereIn('niveauExperience', ['4ans', '5ans', '6ans', '7ans', '8ans', '9ans', '10ans', '+10ans']);
     }
 
-    // Filtrer par type de travail
+    // Filter by work type
     if ($request->has('typeTravail')) {
         $query->where('typeTravail', $request->input('typeTravail'));
     }
 
+    // Order by creation date (newest first - LIFO)
+    $query->orderBy('created_at', 'desc');
+
     $offres = $query->get();
     return response()->json($offres);
 }
+
+
+
 
 public function rechercheAcceuil(Request $request)
 {
@@ -661,5 +669,8 @@ public function rechercheOffre($poste)
 {
     return Offre::where('poste', 'like', '%' . $poste . '%')->get();
 }
+
+
+
 
 }
