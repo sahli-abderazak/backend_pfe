@@ -58,7 +58,7 @@ class AuthController extends Controller
  *     @OA\Response(response=404, description="Utilisateur non trouvé")
  * )
  */
-    public function showProfile(Request $request)
+public function showProfile(Request $request)
 {
     $user = $request->user(); // Récupère l'utilisateur connecté
 
@@ -68,7 +68,7 @@ class AuthController extends Controller
 
     // Vérifie si un CV existe et génère un lien public vers le fichier
     $userData = $user->only([
-        'id', 'email', 'departement', 'nom', 'prenom', 'numTel', 'poste', 'adresse', 'image'
+        'id', 'email', 'departement', 'nom', 'prenom', 'numTel', 'poste', 'adresse', 'image' ,'role' , 'nom_societe' , 'cv'
     ]);
 
     // Ajoute l'URL du CV si disponible
@@ -427,7 +427,6 @@ public function updateRec(Request $request)
 
         // Validation des données entrantes
         $validatedData = $request->validate([
-            'email' => 'nullable|email|unique:users,email,' . $user->id,
             'password' => 'nullable|min:8',
             'nom' => 'nullable|string',
             'prenom' => 'nullable|string',
@@ -437,10 +436,7 @@ public function updateRec(Request $request)
             'cv' => 'nullable|file|mimes:pdf|max:5120',
         ]);
 
-        // Mise à jour des champs texte
-        if (isset($validatedData['email'])) {
-            $user->email = $validatedData['email'];
-        }
+       
 
         if (isset($validatedData['password'])) {
             $user->password = Hash::make($validatedData['password']);
@@ -486,7 +482,6 @@ public function updateRec(Request $request)
         // Préparer la réponse
         $userData = [
             'id' => $user->id,
-            'email' => $user->email,
             'nom' => $user->nom,
             'prenom' => $user->prenom,
             'numTel' => $user->numTel,

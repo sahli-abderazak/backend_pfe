@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Candidat;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
@@ -219,5 +220,47 @@ class UserController extends Controller
      ]);
 
  }
+
+ public function rechercheCandidatArchive($nom = null, $prenom = null)
+{
+    $query = Candidat::where('archived', 1);
+
+    if (!empty($nom)) {
+        $query->where('nom', 'like', '%' . $nom . '%');
+    }
+    if (!empty($prenom)) {
+        $query->where('prenom', 'like', '%' . $prenom . '%');
+    }
+
+    return $query->get();
+}
+public function rechercheCandidat($nom = null, $prenom = null)
+{
+    $query = Candidat::query();
+
+    if (!empty($nom)) {
+        $query->where('nom', 'like', '%' . $nom . '%');
+    }
+    if (!empty($prenom)) {
+        $query->where('prenom', 'like', '%' . $prenom . '%');
+    }
+
+    return $query->get();
+}
+
+public function searchArchivedRecruiters(Request $request)
+{
+    $letter = $request->input('letter');
+
+    $recruiters = User::where('archived', true)
+        ->where('role', 'recruteur')
+        ->where(function ($query) use ($letter) {
+            $query->where('nom', 'LIKE', "%$letter%")
+                  ->orWhere('prenom', 'LIKE', "%$letter%");
+        })
+        ->get();
+
+    return response()->json($recruiters);
+}
 
 }

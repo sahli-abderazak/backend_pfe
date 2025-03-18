@@ -38,12 +38,13 @@ Route::middleware('auth:sanctum')->post('/update-password', [AuthController::cla
 
 
 Route::middleware('auth:sanctum')->get('users', [UserController::class, 'index']);
+
 Route::middleware('auth:sanctum')->post('logout', [AuthController::class, 'logout']);
 Route::delete('users/{id}', [UserController::class, 'destroy']);
 Route::middleware('auth:sanctum')->put('/user/update/{id}', [AuthController::class, 'updateAdmin']);
 
 
-Route::put('/user/updateRec/{id}', [AuthController::class, 'updateRec']);
+Route::middleware('auth:sanctum')->put('/user/updateRec/{id}', [AuthController::class, 'updateRec']);
 Route::middleware('auth:sanctum')->put('users/archive/{id}', [UserController::class, 'archiveUser']);
 
 Route::middleware('auth:sanctum')->get('users/archived', [UserController::class, 'getArchivedUsers']);
@@ -123,4 +124,8 @@ Route::middleware('auth:sanctum')->patch('/messages/read-all/{userId}', [Message
 Route::middleware('auth:sanctum')->get('/messages/unread-counts', [MessageController::class, 'getUnreadCounts']);
 Route::middleware('auth:sanctum')->get('/messages/unread-total', [MessageController::class, 'getUnreadTotal']);
 
-Route::middleware('auth:sanctum')->post('/typing', [TypingController::class, 'typing']);
+
+//recherche
+Route::middleware('auth:sanctum')->get('/recherche-candidat-archive', action: [UserController::class, 'rechercheCandidatArchive']);
+Route::middleware('auth:sanctum')->get('/recherche-candidat', action: [UserController::class, 'rechercheCandidat']);
+Route::middleware('auth:sanctum')->get('/recruteurs-archives/recherche', [UserController::class, 'searchArchivedRecruiters']);
