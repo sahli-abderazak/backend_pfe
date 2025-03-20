@@ -8,14 +8,61 @@ use App\Models\Offre;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class CandidatController extends Controller
 {
 
     /**
-     * Ajouter un candidat.
-     */
+ * @OA\Post(
+ *     path="/api/candidatStore",
+ *     summary="Ajouter un candidat",
+ *     operationId="storeCandidat",
+ *     tags={"Candidat"},
+ *     @OA\RequestBody(
+ *         required=true,
+ *         description="Ajouter un candidat avec ses informations",
+ *         @OA\JsonContent(
+ *             required={"nom", "prenom", "email", "pays", "ville", "codePostal", "tel", "niveauEtude", "cv", "offre_id"},
+ *             @OA\Property(property="nom", type="string", example="Doe"),
+ *             @OA\Property(property="prenom", type="string", example="John"),
+ *             @OA\Property(property="email", type="string", format="email", example="johndoe@example.com"),
+ *             @OA\Property(property="pays", type="string", example="France"),
+ *             @OA\Property(property="ville", type="string", example="Paris"),
+ *             @OA\Property(property="codePostal", type="string", example="75001"),
+ *             @OA\Property(property="tel", type="string", example="0102030405"),
+ *             @OA\Property(property="niveauEtude", type="string", example="Bac+5"),
+ *             @OA\Property(property="niveauExperience", type="string", example="3 ans"),
+ *             @OA\Property(property="cv", type="string", format="binary"),
+ *             @OA\Property(property="offre_id", type="integer", example=1)
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=201,
+ *         description="Candidat ajouté avec succès.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="id", type="integer", example=1),
+ *             @OA\Property(property="nom", type="string", example="Doe"),
+ *             @OA\Property(property="prenom", type="string", example="John")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=400,
+ *         description="Vous avez déjà postulé à cette offre.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="error", type="string", example="Vous avez déjà postulé à cette offre.")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=422,
+ *         description="Validation des données échouée.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="error", type="string", example="Les données envoyées sont invalides.")
+ *         )
+ *     )
+ * )
+ */
     public function storeCandidat(Request $request)
     {
         $request->validate([
@@ -99,7 +146,34 @@ class CandidatController extends Controller
     }
     
     
-    
+    /**
+ * @OA\Get(
+ *     path="/api/candidats-offre",
+ *     summary="Afficher les candidats d'une offre",
+ *     operationId="showcandidatOffre",
+ *     tags={"Candidat"},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des candidats",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 @OA\Property(property="id", type="integer", example=1),
+ *                 @OA\Property(property="nom", type="string", example="Doe"),
+ *                 @OA\Property(property="prenom", type="string", example="John"),
+ *                 @OA\Property(property="cv", type="string", example="https://example.com/cvs/cv.pdf")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Utilisateur non authentifié.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Utilisateur non authentifié")
+ *         )
+ *     )
+ * )
+ */
     public function showcandidatOffre()
     {
         $user = Auth::user(); // Récupérer l'utilisateur connecté
@@ -123,6 +197,37 @@ class CandidatController extends Controller
     
         return response()->json($candidats);
     }
+
+        /**
+ * @OA\Put(
+ *     path="/api/candidats/archiver/{id}",
+ *     summary="Archiver un candidat",
+ *     operationId="archiverCandidat",
+ *     tags={"Candidat"},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID du candidat",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Candidat archivé avec succès.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Candidat archivé avec succès"),
+ *             @OA\Property(property="candidat", type="object", ref="#/components/schemas/Candidat")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Candidat non trouvé.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Candidat non trouvé")
+ *         )
+ *     )
+ * )
+ */
     public function archiverCandidat($id)
     {
         // Récupérer le candidat par son ID
@@ -138,7 +243,33 @@ class CandidatController extends Controller
     
         return response()->json(['message' => 'Candidat archivé avec succès', 'candidat' => $candidat], 200);
     }
-
+/**
+ * @OA\Get(
+ *     path="/api/candidats_archived_societe",
+ *     summary="Récupérer les candidats archivés d'une société",
+ *     operationId="getArchivedCandidatesByCompany",
+ *     tags={"Candidat"},
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des candidats archivés",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 @OA\Property(property="id", type="integer", example=1),
+ *                 @OA\Property(property="nom", type="string", example="Doe"),
+ *                 @OA\Property(property="prenom", type="string", example="John")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=401,
+ *         description="Utilisateur non authentifié.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Utilisateur non authentifié")
+ *         )
+ *     )
+ * )
+ */
     public function getArchivedCandidatesByCompany(Request $request)
 {
     $user = Auth::user(); // Récupérer l'utilisateur connecté
@@ -162,7 +293,36 @@ class CandidatController extends Controller
 
     return response()->json($candidats);
 }
-
+/**
+ * @OA\Put(
+ *     path="/api/candidats_desarchiver/{id}",
+ *     summary="Désarchiver un candidat",
+ *     operationId="desarchiverCandidat",
+ *     tags={"Candidat"},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID du candidat",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Candidat désarchivé avec succès.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Candidat désarchivé avec succès"),
+ *             @OA\Property(property="candidat", type="object", ref="#/components/schemas/Candidat")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Candidat non trouvé.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Candidat non trouvé")
+ *         )
+ *     )
+ * )
+ */
 public function desarchiverCandidat($id)
     {
         // Récupérer le candidat par son ID
@@ -178,7 +338,39 @@ public function desarchiverCandidat($id)
     
         return response()->json(['message' => 'Candidat archivé avec succès', 'candidat' => $candidat], 200);
     }
-
+/**
+ * @OA\Get(
+ *     path="/api/recherche-candidat",
+ *     summary="Rechercher un candidat",
+ *     operationId="rechercheCandidat",
+ *     tags={"Candidat"},
+ *     @OA\Parameter(
+ *         name="nom",
+ *         in="query",
+ *         description="Nom du candidat",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Parameter(
+ *         name="prenom",
+ *         in="query",
+ *         description="Prénom du candidat",
+ *         required=false,
+ *         @OA\Schema(type="string")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des candidats trouvés",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 @OA\Property(property="nom", type="string", example="Doe"),
+ *                 @OA\Property(property="prenom", type="string", example="John")
+ *             )
+ *         )
+ *     )
+ * )
+ */
     public function rechercheCandidat($nom = null, $prenom = null)
 {
     $query = Candidat::query();
@@ -192,6 +384,35 @@ public function desarchiverCandidat($id)
 
     return $query->get();
 }
+/**
+ * @OA\Delete(
+ *     path="/api/candidatSupp/{id}",
+ *     summary="Supprimer un candidat",
+ *     operationId="deleteCandidat",
+ *     tags={"Candidat"},
+ *     @OA\Parameter(
+ *         name="id",
+ *         in="path",
+ *         required=true,
+ *         description="ID du candidat",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Candidat supprimé avec succès.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Candidat supprimé avec succès")
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Candidat non trouvé.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Candidat non trouvé")
+ *         )
+ *     )
+ * )
+ */
 public function deleteCandidat($id)
 {
     // Récupérer le candidat par son ID
@@ -211,7 +432,40 @@ public function deleteCandidat($id)
 
     return response()->json(['message' => 'Candidat supprimé avec succès'], 200);
 }
-
+/**
+ * @OA\Get(
+ *     path="/api/candidatsByOffre/{offre_id}",
+ *     summary="Obtenir les candidats par offre",
+ *     operationId="getCandidatsByOffre",
+ *     tags={"Candidat"},
+ *     @OA\Parameter(
+ *         name="offre_id",
+ *         in="path",
+ *         required=true,
+ *         description="ID de l'offre",
+ *         @OA\Schema(type="integer", example=1)
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des candidats pour l'offre",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 @OA\Property(property="id", type="integer", example=1),
+ *                 @OA\Property(property="nom", type="string", example="Doe"),
+ *                 @OA\Property(property="prenom", type="string", example="John")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Offre non trouvée.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Offre non trouvée")
+ *         )
+ *     )
+ * )
+ */
 public function getCandidatsByOffre($offre_id)
 {
     // Vérifier si l'offre existe
@@ -234,5 +488,52 @@ public function getCandidatsByOffre($offre_id)
     return response()->json($candidats, 200);
 }
 
+/**
+ * @OA\Get(
+ *     path="/api/candidats/offres/{email}",
+ *     summary="Afficher les offres d'un candidat",
+ *     operationId="offresParCandidat",
+ *     tags={"Candidat"},
+ *     @OA\Parameter(
+ *         name="email",
+ *         in="path",
+ *         required=true,
+ *         description="Email du candidat",
+ *         @OA\Schema(type="string", format="email", example="johndoe@example.com")
+ *     ),
+ *     @OA\Response(
+ *         response=200,
+ *         description="Liste des offres auxquelles le candidat a postulé",
+ *         @OA\JsonContent(
+ *             type="array",
+ *             @OA\Items(
+ *                 @OA\Property(property="nom", type="string", example="Doe"),
+ *                 @OA\Property(property="prenom", type="string", example="John")
+ *             )
+ *         )
+ *     ),
+ *     @OA\Response(
+ *         response=404,
+ *         description="Candidat non trouvé.",
+ *         @OA\JsonContent(
+ *             @OA\Property(property="message", type="string", example="Candidat non trouvé")
+ *         )
+ *     )
+ * )
+ */
+public function offresParCandidat($email)
+{
+    $candidat = DB::table('candidats')
+        ->where('email', $email)
+        ->join('offres', 'candidats.offre_id', '=', 'offres.id')
+        ->select('candidats.nom', 'candidats.prenom', 'candidats.email', 'offres.*')
+        ->get();
+
+    if ($candidat->isEmpty()) {
+        return response()->json(['message' => 'Aucune offre trouvée pour ce candidat'], 404);
+    }
+
+    return response()->json($candidat);
+}
 
 }

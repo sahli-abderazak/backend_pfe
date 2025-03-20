@@ -94,7 +94,7 @@ Route::get('/offreDetail/{id}', [OffreController::class, 'showDetail']);
 Route::get('/offres_domaine/{domaine}', [OffreController::class, 'getByDepartement']);
 Route::get('/recherche-candidat', action: [CandidatController::class, 'rechercheCandidat']);
 //affichage candidat par offre
-Route::get('/candidatsByOffre/{offre_id}', [CandidatController::class, 'getCandidatsByOffre']);
+Route::middleware('auth:sanctum')->get('/candidatsByOffre/{offre_id}', [CandidatController::class, 'getCandidatsByOffre']);
 
 
 
@@ -129,8 +129,10 @@ Route::middleware('auth:sanctum')->patch('/messages/read-all/{userId}', [Message
 Route::middleware('auth:sanctum')->get('/messages/unread-counts', [MessageController::class, 'getUnreadCounts']);
 Route::middleware('auth:sanctum')->get('/messages/unread-total', [MessageController::class, 'getUnreadTotal']);
 
-
+Route::middleware('auth:sanctum')->get('/recherche-recruteur', action: [UserController::class, 'rechercheRecruteur']);
 //recherche
+Route::get('/candidats/offres/{email}', [CandidatController::class, 'offresParCandidat']);
+
 Route::middleware('auth:sanctum')->get('/recherche-candidat-archive', action: [UserController::class, 'rechercheCandidatArchive']);
 Route::middleware('auth:sanctum')->get('/recherche-candidat', action: [UserController::class, 'rechercheCandidat']);
 Route::middleware('auth:sanctum')->get('/recruteurs-archives/recherche', [UserController::class, 'searchArchivedRecruiters']);
