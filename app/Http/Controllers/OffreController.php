@@ -78,6 +78,7 @@ public function ajoutOffre(Request $request)
         'domaine' => 'required|string|max:255',
         'responsabilite' => 'required|string',
         'experience' => 'required|string',
+        'matching' => 'nullable|numeric|min:0|max:100',
     ]);
 
     $offre = Offre::create([
@@ -98,6 +99,7 @@ public function ajoutOffre(Request $request)
         'domaine' => $request->domaine,
         'responsabilite' => $request->responsabilite,
         'experience' => $request->experience,
+        'matching' => $request->matching ?? 0,
     ]);
 
     // Get the authenticated user (recruiter)
@@ -127,7 +129,6 @@ public function ajoutOffre(Request $request)
         'offre' => $offre
     ], 201);
 }
-
 
 
  /**

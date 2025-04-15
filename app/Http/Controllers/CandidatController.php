@@ -9,11 +9,29 @@ use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Storage;
+use Smalot\PdfParser\Parser as PdfParser;
 
 class CandidatController extends Controller
 {
+    public function getCandidatByEmail(Request $request)
+    {
+        $request->validate([
+            'email' => 'required|email',
+            'offre_id' => 'required|exists:offres,id',
+        ]);
 
+        $candidat = Candidat::where('email', $request->email)
+                           ->where('offre_id', $request->offre_id)
+                           ->first();
+
+        if (!$candidat) {
+            return response()->json(['error' => 'Candidat non trouvé'], 404);
+        }
+
+        return response()->json($candidat);
+    }
     /**
  * @OA\Post(
  *     path="/api/candidatStore",
@@ -63,88 +81,128 @@ class CandidatController extends Controller
  *     )
  * )
  */
-    public function storeCandidat(Request $request)
-    {
-        $request->validate([
-            'nom' => 'required|string|max:255',
-            'prenom' => 'required|string|max:255',
-            'email' => 'required|email',
-            'pays' => 'required|string|max:255',
-            'ville' => 'required|string|max:255',
-            'codePostal' => 'required|string|max:10',
-            'tel' => 'required|string|max:20',
-            'niveauEtude' => 'required|string|max:255',
-            'niveauExperience' => 'nullable|string|max:255',
-            'cv' => 'required|file|mimes:pdf,doc,docx|max:2048',
-            'offre_id' => 'required|exists:offres,id',
-        ]);
-    
-        // Vérifier si le candidat a déjà postulé à cette offre avec le même email
-        $existingApplication = Candidat::where('email', $request->email)
-                                       ->where('offre_id', $request->offre_id)
-                                       ->first();
-    
-        if ($existingApplication) {
-            return response()->json([
-                'error' => 'Vous avez déjà postulé à cette offre. Vous ne pouvez postuler qu\'une seule fois par offre.'
-            ], 400);
-        }
-    
-        // Sauvegarde du CV
-        if ($request->hasFile('cv')) {
-            $cvPath = $request->file('cv')->store('cvs', 'public'); // Sauvegarde dans storage/app/public/cvs
-        }
-    
-        // Créer le candidat
-        $candidat = Candidat::create([
-            'nom' => $request->nom,
-            'prenom' => $request->prenom,
-            'email' => $request->email,
-            'pays' => $request->pays,
-            'ville' => $request->ville,
-            'codePostal' => $request->codePostal,
-            'tel' => $request->tel,
-            'niveauEtude' => $request->niveauEtude,
-            'niveauExperience' => $request->niveauExperience,
-            'cv' => $cvPath ?? null,
-            'offre_id' => $request->offre_id,
-        ]);
-    
-        // Trouver l'offre à laquelle le candidat a postulé
-        $offre = Offre::find($request->offre_id);
-    
-        if ($offre) {
-            // Trouver les recruteurs de la même société
-            $recruiters = User::where('nom_societe', $offre->societe)
-                              ->where('role', 'recruteur')
-                              ->where('active', true)
-                              ->get();
-    
-            // Créer une notification pour chaque recruteur
-            foreach ($recruiters as $recruiter) {
-                Notification::create([
-                    'type' => 'new_application',
-                    'message' => "Un candidat a postulé à votre offre d'emploi '{$offre->poste}'",
-                    'data' => [
-                        'candidate_id' => $candidat->id,
-                        'candidate_name' => $candidat->nom . ' ' . $candidat->prenom,
-                        'candidate_email' => $candidat->email,
-                        'offer_id' => $offre->id,
-                        'position' => $offre->poste,
-                        'department' => $offre->departement,
-                        'company' => $offre->societe,
-                        'application_id' => $candidat->id, // Pour navigation dans le frontend
-                    ],
-                    'user_id' => $recruiter->id,
-                    'read' => false,
-                ]);
-            }
-        }
-    
-        // Retourner la réponse avec le candidat créé
-        return response()->json($candidat, 201);
+public function storeCandidat(Request $request)
+{
+    // Validation des données reçues
+    $request->validate([
+        'nom' => 'required|string|max:255',
+        'prenom' => 'required|string|max:255',
+        'email' => 'required|email',
+        'pays' => 'required|string|max:255',
+        'ville' => 'required|string|max:255',
+        'codePostal' => 'required|string|max:10',
+        'tel' => 'required|string|max:20',
+        'niveauEtude' => 'required|string|max:255',
+        'niveauExperience' => 'nullable|string|max:255',
+        'cv' => 'required|file|mimes:pdf,doc,docx|max:2048',
+        'offre_id' => 'required|exists:offres,id',
+    ]);
+
+    // Vérifier si le candidat a déjà postulé à cette offre avec le même email
+    $existingApplication = Candidat::where('email', $request->email)
+        ->where('offre_id', $request->offre_id)
+        ->first();
+
+    if ($existingApplication) {
+        return response()->json([
+            'error' => 'Vous avez déjà postulé à cette offre. Vous ne pouvez postuler qu\'une seule fois par offre.'
+        ], 400);
     }
-    
+
+    // Sauvegarde du CV
+    if ($request->hasFile('cv')) {
+        $cvPath = $request->file('cv')->store('cvs', 'public'); // Sauvegarde dans storage/app/public/cvs
+    }
+
+    // Lire le contenu du CV
+    $cvText = (new PdfParser())
+        ->parseFile(public_path("storage/" . $cvPath))
+        ->getText();
+
+    // Récupérer l'offre d'emploi
+    $offre = Offre::find($request->offre_id);
+
+    // Appel à l'API FastAPI pour obtenir le score de matching entre le CV et l'offre
+    $response = Http::post('http://127.0.0.1:8002/match-cv-offre', [
+        'cv' => $cvText,
+        'offre' => [
+            'id' => $offre->id,
+            'description' => $offre->description,
+            'niveauExperience' => $offre->niveauExperience,
+            'niveauEtude' => $offre->niveauEtude,
+            'responsabilite' => $offre->responsabilite,
+            'experience' => $offre->experience,
+            'pays' => $offre->pays,
+            'ville' => $offre->ville,
+        ]
+    ]);
+
+    // Vérifier la réponse de l'API
+    if (!$response->ok()) {
+        return response()->json([
+            'error' => 'Erreur lors de l\'appel à l\'API FastAPI pour le matching.',
+            'details' => $response->body(),
+        ], 500);
+    }
+
+    // Récupérer le score de matching depuis la réponse de l'API
+    $data = $response->json();
+    $score = $data['score'] ?? 0;
+    $scoreMinimal = $offre->matching ?? 0;
+
+    // Vérifier si le score est suffisant pour ajouter le candidat
+    if ($score < $scoreMinimal) {
+        return response()->json([
+            'error' => "Votre score de matching ($score) est inférieur au minimum requis ($scoreMinimal). Nous ne pouvons pas retenir votre candidature pour ce poste.",
+        ], 403);
+    }
+
+    // Créer le candidat dans la table Candidat
+    $candidat = Candidat::create([
+        'nom' => $request->nom,
+        'prenom' => $request->prenom,
+        'email' => $request->email,
+        'pays' => $request->pays,
+        'ville' => $request->ville,
+        'codePostal' => $request->codePostal,
+        'tel' => $request->tel,
+        'niveauEtude' => $request->niveauEtude,
+        'niveauExperience' => $request->niveauExperience,
+        'cv' => $cvPath ?? null,
+        'offre_id' => $request->offre_id,
+    ]);
+
+    // Trouver les recruteurs de la même société pour notification
+    if ($offre) {
+        $recruiters = User::where('nom_societe', $offre->societe)
+            ->where('role', 'recruteur')
+            ->where('active', true)
+            ->get();
+
+        // Créer une notification pour chaque recruteur
+        foreach ($recruiters as $recruiter) {
+            Notification::create([
+                'type' => 'new_application',
+                'message' => "Un candidat a postulé à votre offre d'emploi '{$offre->poste}'",
+                'data' => [
+                    'candidate_id' => $candidat->id,
+                    'candidate_name' => $candidat->nom . ' ' . $candidat->prenom,
+                    'candidate_email' => $candidat->email,
+                    'offer_id' => $offre->id,
+                    'position' => $offre->poste,
+                    'department' => $offre->departement,
+                    'company' => $offre->societe,
+                    'application_id' => $candidat->id, // Pour navigation dans le frontend
+                ],
+                'user_id' => $recruiter->id,
+                'read' => false,
+            ]);
+        }
+    }
+
+    // Retourner la réponse avec le candidat créé
+    return response()->json($candidat, 201);
+}
     
     /**
  * @OA\Get(
@@ -523,14 +581,23 @@ public function getCandidatsByOffre($offre_id)
  */
 public function offresParCandidat($email)
 {
+    // Vérifier si l'utilisateur est authentifié
+    $recruteur = Auth::user();
+
+    if (!$recruteur || $recruteur->role !== 'recruteur') {
+        return response()->json(['message' => 'Accès refusé'], 403);
+    }
+
+    // Récupérer les offres postulées par le candidat qui appartiennent à la société du recruteur connecté
     $candidat = DB::table('candidats')
-        ->where('email', $email)
+        ->where('candidats.email', $email)
         ->join('offres', 'candidats.offre_id', '=', 'offres.id')
+        ->where('offres.societe', '=', $recruteur->nom_societe) // Filtrer par la société du recruteur
         ->select('candidats.nom', 'candidats.prenom', 'candidats.email', 'offres.*')
         ->get();
 
     if ($candidat->isEmpty()) {
-        return response()->json(['message' => 'Aucune offre trouvée pour ce candidat'], 404);
+        return response()->json(['message' => 'Aucune offre trouvée pour ce candidat dans votre société'], 404);
     }
 
     return response()->json($candidat);

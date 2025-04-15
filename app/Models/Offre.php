@@ -43,5 +43,6 @@ class Offre extends Model
         'domaine',
         'responsabilite',
         'experience',
+        'matching',
     ];
 }

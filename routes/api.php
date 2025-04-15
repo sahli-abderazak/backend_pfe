@@ -3,6 +3,7 @@ use App\Http\Controllers\Auth\ForgotPasswordController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\CandidatController;
 use App\Http\Controllers\ContactController;
+use App\Http\Controllers\MatchingScoreController;
 use App\Http\Controllers\MessageController;
 use App\Http\Controllers\NotificationController;
 use App\Http\Controllers\TemoignageController;
@@ -44,14 +45,12 @@ Route::delete('users/{id}', [UserController::class, 'destroy']);
 Route::middleware('auth:sanctum')->put('/user/update/{id}', [AuthController::class, 'updateAdmin']);
 
 
-Route::middleware('auth:sanctum')->put('/user/updateRec/{id}', [AuthController::class, 'updateRec']);
 Route::middleware('auth:sanctum')->put('users/archive/{id}', [UserController::class, 'archiveUser']);
 
 Route::middleware('auth:sanctum')->get('users/archived', [UserController::class, 'getArchivedUsers']);
 
 Route::middleware('auth:sanctum')->get('/user/info', [UserController::class, 'getCurrentUserInfo']);
 Route::middleware('auth:sanctum')->put('users/unarchive/{id}', [UserController::class, 'unarchiveUser']);
-Route::middleware('auth:sanctum')->get('users/profile', [AuthController::class, 'showProfile']);
 
 
 //contact
@@ -67,6 +66,13 @@ Route::middleware('auth:sanctum')->get('/temoiniages_admin', [TemoignageControll
 Route::middleware('auth:sanctum')->put('temoiniages/valider/{id}', [TemoignageController::class, 'validerTemoiniage']);
 Route::middleware('auth:sanctum')->delete('/temoignageSupp/{id}', [TemoignageController::class, 'deleteTemoignage']);
 
+
+Route::middleware(['auth:sanctum', 'isRecruteur'])->group(function () {
+    Route::put('/user/updateRec/{id}', [AuthController::class, 'updateRec']);
+    Route::get('users/profile', [AuthController::class, 'showProfile']);
+
+});
+
 //offre
 Route::middleware('auth:sanctum')->post('/addOffres', [OffreController::class, 'ajoutOffre']); // Ajouter une offre
 Route::middleware('auth:sanctum')->get('/Alloffresnvalide', [OffreController::class, 'afficheOffreNValider']); // Afficher toutes les offres non validée
@@ -80,6 +86,7 @@ Route::middleware('auth:sanctum')->get('/AlloffresExpiree', [OffreController::cl
 Route::middleware('auth:sanctum')->get('/offres-recruteur-valides', [OffreController::class, 'offreValideRecruteur']);
 Route::middleware('auth:sanctum')->get('/offres-expirees-societe', [OffreController::class, 'afficheOffreExpireeRec']);
 Route::middleware('auth:sanctum')->get('/recherche-offre/{poste}', [OffreController::class, 'rechercheOffre']);
+Route::get('/showMatchingScore/{candidat_id}', [MatchingScoreController::class, 'showMatchingScore']);
 
 
 
@@ -93,6 +100,7 @@ Route::get('/departements-domaines', [OffreController::class, 'afficheDepartemen
 Route::get('/offreDetail/{id}', [OffreController::class, 'showDetail']);
 Route::get('/offres_domaine/{domaine}', [OffreController::class, 'getByDepartement']);
 Route::get('/recherche-candidat', action: [CandidatController::class, 'rechercheCandidat']);
+
 //affichage candidat par offre
 Route::middleware('auth:sanctum')->get('/candidatsByOffre/{offre_id}', [CandidatController::class, 'getCandidatsByOffre']);
 
@@ -136,3 +144,13 @@ Route::get('/candidats/offres/{email}', [CandidatController::class, 'offresParCa
 Route::middleware('auth:sanctum')->get('/recherche-candidat-archive', action: [UserController::class, 'rechercheCandidatArchive']);
 Route::middleware('auth:sanctum')->get('/recherche-candidat', action: [UserController::class, 'rechercheCandidat']);
 Route::middleware('auth:sanctum')->get('/recruteurs-archives/recherche', [UserController::class, 'searchArchivedRecruiters']);
+
+//model ai
+use App\Http\Controllers\TestAIController;
+
+Route::post('/generate-test', [TestAIController::class, 'generateTest']);
+Route::post('/store-score', [TestAIController::class, 'storeScore']);
+Route::post('/candidat-by-email', [CandidatController::class, 'getCandidatByEmail']);
+Route::post('/generate-image-question', [TestAIController::class, 'generateImageQuestion']);
+Route::post('/analyze-personality', [TestAIController::class, 'analyzePersonality']);
+Route::post('/matching-score', [MatchingScoreController::class, 'calculateMatchingScore']);
